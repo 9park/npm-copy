@@ -15,7 +15,16 @@ module.exports = fibrous (argv) ->
       email: argv["#{dir}-email"]
       alwaysAuth: true
 
-  moduleNames = argv._
+  jsonInputStr = fs.readFileSync('/dev/stdin').toString();
+  versions = {};
+  try
+    jsonInput = JSON.parse(jsonInputStr)
+    moduleNames = jsonInput
+      return name
+  catch e
+    moduleNames = argv._
+
+  console.log(versions)
 
   unless from.url and (from.auth.token or (from.auth.username and from.auth.password)) and
          to.url and (to.auth.token or (to.auth.username and to.auth.password)) and
@@ -25,13 +34,25 @@ module.exports = fibrous (argv) ->
 
   npm = new RegClient()
 
-  for moduleName in argv._
-    fromVersions = npm.sync.get("#{from.url}/#{moduleName}", auth: from.auth, timeout: 3000).versions
+  for moduleName in moduleNames
+    try 
+      fromVersionsOriginal = npm.sync.get("#{from.url}/#{moduleName}", auth: from.auth, timeout: 3000).versions
+    catch e
+      console.log "#{moduleName} not found"
+      continue
     try
       toVersions = npm.sync.get("#{to.url}/#{moduleName}", auth: to.auth, timeout: 3000).versions
     catch e
       throw e unless e.code is 'E404'
       toVersions = {}
+
+    if jsonInput
+      fromVersions = {}
+      versions[moduleName].forEach (v) ->
+        if fromVersionsOriginal[v]
+          fromVersions[v] = fromVersionsOriginal[v]
+    else 
+      fromVersions = fromVersionsOriginal
 
     versionsToSync = _.difference Object.keys(fromVersions), Object.keys(toVersions)
 
@@ -50,7 +71,14 @@ module.exports = fibrous (argv) ->
       remoteTarball = npm.sync.fetch dist.tarball, auth: from.auth
 
       try
-        res = npm.sync.publish "#{to.url}/#{moduleName}", auth: to.auth, metadata: newMetadata, access: 'public', body: remoteTarball
+        # delete fields that github looks for and disqualified if it's not github
+        delete newMetadata.publishConfig
+        delete newMetadata.repository
+        newMetadata.repository = {
+          type: 'git',
+          url: argv["to-git-repo"]
+        }
+        res = npm.sync.publish "#{to.url}", auth: to.auth, metadata: newMetadata, access: 'restricted', body: remoteTarball
         console.log "#{moduleName}@#{semver} cloned"
       catch e
         remoteTarball.connection.end() # abort
