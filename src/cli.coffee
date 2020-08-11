@@ -15,16 +15,17 @@ module.exports = fibrous (argv) ->
       email: argv["#{dir}-email"]
       alwaysAuth: true
 
-  jsonInputStr = fs.readFileSync('/dev/stdin').toString();
-  versions = {};
-  try
-    jsonInput = JSON.parse(jsonInputStr)
-    moduleNames = jsonInput
-      return name
-  catch e
-    moduleNames = argv._
 
-  console.log(versions)
+  versions = {}
+  moduleNames = []
+
+  for inputStr in argv._
+    try
+      parsed = JSON.parse(inputStr)
+      Object.assign(versions, parsed)
+      moduleNames = moduleNames.concat(Object.keys(parsed))
+    catch e
+      moduleNames.push(inputStr)
 
   unless from.url and (from.auth.token or (from.auth.username and from.auth.password)) and
          to.url and (to.auth.token or (to.auth.username and to.auth.password)) and
@@ -35,7 +36,7 @@ module.exports = fibrous (argv) ->
   npm = new RegClient()
 
   for moduleName in moduleNames
-    try 
+    try
       fromVersionsOriginal = npm.sync.get("#{from.url}/#{moduleName}", auth: from.auth, timeout: 3000).versions
     catch e
       console.log "#{moduleName} not found"
@@ -46,12 +47,12 @@ module.exports = fibrous (argv) ->
       throw e unless e.code is 'E404'
       toVersions = {}
 
-    if jsonInput
+    if versions[moduleName]
       fromVersions = {}
       versions[moduleName].forEach (v) ->
         if fromVersionsOriginal[v]
           fromVersions[v] = fromVersionsOriginal[v]
-    else 
+    else
       fromVersions = fromVersionsOriginal
 
     versionsToSync = _.difference Object.keys(fromVersions), Object.keys(toVersions)

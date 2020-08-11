@@ -15,8 +15,17 @@ The example should explain things.  We accept either token auth or username/pass
 
 ```
 npm install -g npm-copy
-npm-copy --from https://old.npm.mycorp.com --from-token foo --to https://new.npm.mycorp.com --to-username bob --to-password secret --to-email my@corp.com mycorp-logger mycorp-stats
+npm-copy --from https://old.npm.mycorp.com --from-token foo --to https://new.npm.mycorp.com --to-username bob --to-password secret --to-email my@corp.com module-1 module-2
 ```
+
+- Module argument can simply be the actual module names in which case all versions will be copied over.
+- If module is a JSON string like `'{"module-1": ["v2", "v3"]}'`  only the listed versions will be copied over.
+- You can mix and match the two types of module arguments above.
+
+## Cross Publishing?
+Use `--to-git-repo TARGET-PACKAGE-REPO`.
+
+*DISCLAIMER*: Use this at your own peril. We deny all copyrights and security violations due to misuse of this command.
 
 ## Contributing
 
